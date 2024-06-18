@@ -18,6 +18,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /v1/healthz", handlerReadiness)
+	mux.HandleFunc("GET /v1/err", handlerErr)
 
 	server := &http.Server{
 		Addr:    ":" + port,
