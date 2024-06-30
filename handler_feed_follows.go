@@ -55,3 +55,13 @@ func (cfg *apiConfig) handlerFeedFollowDelete(w http.ResponseWriter, r *http.Req
 
 	respondWithJSON(w, http.StatusOK, struct{}{})
 }
+
+func (cfg *apiConfig) handlerFeedFollowsGet(w http.ResponseWriter, r *http.Request, user database.User) {
+	feedFollows, err := cfg.DB.GetFeedFollowsForUser(r.Context(), user.ID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to get feed follow")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, databaseFeedFollowsToFeedFollows(feedFollows))
+}
