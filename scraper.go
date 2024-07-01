@@ -1,5 +1,12 @@
 package main
 
+import (
+	"encoding/xml"
+	"io"
+	"net/http"
+	"time"
+)
+
 type RSSItem struct {
 	Title       string `xml:"title"`
 	Link        string `xml:"link"`
@@ -15,4 +22,28 @@ type RSSFeed struct {
 		Language    string    `xml:"language"`
 		Item        []RSSItem `xml:"item"`
 	} `xml:"channel"`
+}
+
+func fetchFeed(feedURL string) (*RSSFeed, error) {
+	httpClient := http.Client{
+		Timeout: 10 * time.Second,
+	}
+	resp, err := httpClient.Get(feedURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var rssFeed RSSFeed
+	err = xml.Unmarshal(data, &rssFeed)
+	if err != nil {
+		return nil, err
+	}
+
+	return &rssFeed, nil
 }
