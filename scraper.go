@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/xml"
 	"io"
+	"log"
 	"net/http"
+	"sync"
 	"time"
+
+	"github.com/oliver-day/rss-feed-aggregator/internal/database"
 )
 
 type RSSItem struct {
@@ -46,4 +51,23 @@ func fetchFeed(feedURL string) (*RSSFeed, error) {
 	}
 
 	return &rssFeed, nil
+}
+
+func scrapeFeed(db *database.Queries, wg *sync.WaitGroup, feed database.Feed) {
+	defer wg.Done()
+	_, err := db.MarkFeedFetched(context.Background(), feed.ID)
+	if err != nil {
+		log.Printf("Failed to mark feed %s: %v", feed.Name, err)
+		return
+	}
+
+	feedData, err := fetchFeed(feed.Url)
+	if err != nil {
+		log.Printf("Failed to collect feed %s: %v", feed.Name, err)
+		return
+	}
+	for _, item := range feedData.Channel.Item {
+		log.Println("Found post:", item.Title)
+	}
+	log.Printf("Finished scraping feed %s, %v posts found", feed.Name, len(feedData.Channel.Item))
 }
