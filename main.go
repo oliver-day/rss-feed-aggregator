@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -34,8 +35,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	dbQueries := database.New(db)
+
 	apiCfg := apiConfig{
 		DB: dbQueries,
 	}
@@ -59,6 +60,10 @@ func main() {
 		Addr:    ":" + port,
 		Handler: mux,
 	}
+
+	const collectionConcurrency = 10
+	const collectionInterval = time.Minute
+	go startScraping(dbQueries, collectionConcurrency, collectionInterval)
 
 	log.Printf("Server started on port %s", port)
 	log.Fatal(server.ListenAndServe())
