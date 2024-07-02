@@ -71,3 +71,24 @@ func scrapeFeed(db *database.Queries, wg *sync.WaitGroup, feed database.Feed) {
 	}
 	log.Printf("Finished scraping feed %s, %v posts found", feed.Name, len(feedData.Channel.Item))
 }
+
+func startScraping(db *database.Queries, concurrency int, timeBetweenRequest time.Duration) {
+	log.Printf("Collecting feeds every %s on %v goroutines...", timeBetweenRequest, concurrency)
+	ticker := time.NewTicker(timeBetweenRequest)
+
+	for ; ; <-ticker.C {
+		feeds, err := db.GetNextFeedsToFetch(context.Background(), int32(concurrency))
+		if err != nil {
+			log.Println("Failed to get next feeds to fetch:", err)
+			continue
+		}
+		log.Printf("Found %v feeds to fetch", len(feeds))
+
+		wg := &sync.WaitGroup{}
+		for _, feed := range feeds {
+			wg.Add(1)
+			go scrapeFeed(db, wg, feed)
+		}
+		wg.Wait()
+	}
+}
